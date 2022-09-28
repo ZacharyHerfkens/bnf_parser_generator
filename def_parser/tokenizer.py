@@ -14,6 +14,7 @@
 
 from enum import Enum, auto
 from dataclasses import dataclass
+from typing import Iterator
 
 
 @dataclass(frozen=True, eq=True)
@@ -48,7 +49,7 @@ class TokenType(Enum):
     NonTerm = auto()
     Term = auto()
     Colon = auto()
-    SemiColon = auto()
+    Semicolon = auto()
     Pipe = auto()
 
 
@@ -77,7 +78,7 @@ class UnclosedTerminal(Exception):
         return f"Unclosed terminal starting at {self._loc}"
 
 
-class Tokenizer:
+class Tokenizer(Iterator[Token]):
     def __init__(self, text: str) -> None:
         self._text: str = text
         self._loc: Loc = Loc(0, 1, 1)
@@ -112,10 +113,11 @@ class Tokenizer:
     def _term(self) -> Token:
         start = self._loc
         value = ""
+        self._next_char() # skip the opening quote
         while True:
             chr = self._cur_char()
             if chr is None:
-                break
+                raise UnclosedTerminal(start)
             if chr == "'":
                 self._next_char()
                 break
@@ -148,16 +150,38 @@ class Tokenizer:
         cur = self._cur_char()
         if cur is None:
             return None
+        
+        start = self._loc
 
         if cur.isalnum() or cur == "_":
             return self._nonterm()
         elif cur == "'":
             return self._term()
         elif cur == ":":
-            return Token(TokenType.Colon, ":", self._loc)
+            self._next_char()
+            return Token(TokenType.Colon, ":", start)
         elif cur == ";":
-            return Token(TokenType.SemiColon, ";", self._loc)
+            self._next_char()
+            return Token(TokenType.Semicolon, ";", start)
         elif cur == "|":
-            return Token(TokenType.Pipe, "|", self._loc)
+            self._next_char()
+            return Token(TokenType.Pipe, "|", start)
         else:
-            raise
+            raise InvalidCharacter(cur, start)
+    
+    def peek(self) -> Token | None:
+        return self._peek
+    
+    def next(self) -> Token | None:
+        cur = self._peek
+        self._peek = self._next()
+        return cur
+    
+    def __iter__(self) -> Iterator[Token]:
+        return self
+    
+    def __next__(self) -> Token:
+        next = self.next()
+        if next is None:
+            raise StopIteration
+        return next
