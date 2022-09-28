@@ -6,13 +6,15 @@
         - Colon     a colon
         - SemiColon a semicolon
         - Pipe      a pipe
+        - Empty     an empty string given by '!'
+        - EOF       end of file
     
     Non-Terminals may contain letters, digits, and underscores. Terminals
     are enclosed in single quotes and may contain any characters except
     single quotes and newlines.
 """
 
-from enum import Enum, auto
+from enum import Enum
 from dataclasses import dataclass
 from typing import Iterator
 
@@ -46,11 +48,13 @@ class Loc:
 
 
 class TokenType(Enum):
-    NonTerm = auto()
-    Term = auto()
-    Colon = auto()
-    Semicolon = auto()
-    Pipe = auto()
+    NonTerm = "nonterm"
+    Term = "term"
+    Colon = ":"
+    Semicolon = ";"
+    Pipe = "|"
+    Empty = "!"
+    EOF = "eof"
 
 
 @dataclass(frozen=True, eq=True)
@@ -76,12 +80,22 @@ class UnclosedTerminal(Exception):
     
     def __str__(self) -> str:
         return f"Unclosed terminal starting at {self._loc}"
+    
+
+class UnexpectedToken(Exception):
+    def __init__(self, expected: set[TokenType], actual: Token) -> None:
+        self._expected = expected
+        self._actual = actual
+    
+    def __str__(self) -> str:
+        return f"Expected {self._expected}, got {self._actual.type} at {self._actual.loc}"
 
 
 class Tokenizer(Iterator[Token]):
     def __init__(self, text: str) -> None:
         self._text: str = text
         self._loc: Loc = Loc(0, 1, 1)
+        self._eof: bool = False
         self._peek: Token | None = self._next()
 
     def _cur_char(self) -> str | None:
@@ -146,10 +160,14 @@ class Tokenizer(Iterator[Token]):
                 break
 
     def _next(self) -> Token | None:
+        if self._eof:
+            return None
+        
         self._skip()
         cur = self._cur_char()
         if cur is None:
-            return None
+            self._eof = True
+            return Token(TokenType.EOF, "", self._loc)
         
         start = self._loc
 
@@ -166,8 +184,21 @@ class Tokenizer(Iterator[Token]):
         elif cur == "|":
             self._next_char()
             return Token(TokenType.Pipe, "|", start)
+        elif cur == "!":
+            self._next_char()
+            return Token(TokenType.Empty, "!", start)
         else:
             raise InvalidCharacter(cur, start)
+    
+    def has(self, types: set[TokenType]) -> bool:
+        return self._peek is not None and self._peek.type in types
+    
+    def expect(self, types: set[TokenType]) -> Token:
+        token = self.next()
+        assert token is not None
+        if token.type not in types:
+            raise UnexpectedToken(types, token)
+        return token
     
     def peek(self) -> Token | None:
         return self._peek
