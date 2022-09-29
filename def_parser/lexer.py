@@ -29,6 +29,7 @@ class TokenType(Enum):
     PIPE = "|"
     SEMICOLON = ";"
     EMPTY = "!"
+    EOF = "eof"
 
 
 @dataclass(frozen=True, eq=True)
@@ -93,22 +94,18 @@ class UnexpectedCharacter(Exception):
 
 
 class UnexpectedToken(Exception):
-    def __init__(self, token: Token, pos: int) -> None:
-        self.token = token
+    def __init__(self, expected: set[TokenType], actual: Token, pos: int) -> None:
+        self.expected = expected
+        self.actual = actual
         self.pos = pos
-        super().__init__(f"Unexpected token '{token}' at position {pos}")
+        super().__init__(f"Expected {expected} but got {actual} at <{pos}>")
 
-
-class UnexpectedEOF(Exception):
-    def __init__(self, pos: int) -> None:
-        self.pos = pos
-        super().__init__(f"Unexpected end of file at pos:{pos}")
 
 
 class Lexer:
     def __init__(self, string: str) -> None:
         self._chars: Chars = Chars(string)
-        self._peek: Token | None = self._next_token()
+        self._peek: Token = self._next_token()
 
     def _skip(self) -> None:
         """Skip whitespace and comments."""
@@ -121,10 +118,10 @@ class Lexer:
             else:
                 break
 
-    def _next_token(self) -> Token | None:
+    def _next_token(self) -> Token:
         self._skip()
         if self._chars.done:
-            return None
+            return Token(TokenType.EOF, "", self._chars.pos, 0)
         pos = self._chars.pos
         if self._chars.has(lambda c: c.isalnum() or c == "_"):
             value = self._chars.next_while(lambda c: c.isalnum() or c == "_")
@@ -148,8 +145,6 @@ class Lexer:
         return self._peek is None
 
     def peek(self) -> Token:
-        if self._peek is None:
-            raise UnexpectedEOF(self._chars.pos)
         return self._peek
 
     def next(self) -> Token:
@@ -161,12 +156,6 @@ class Lexer:
         return not self.eof and self.peek().type in types
 
     def expect(self, type: TokenType) -> Token:
-        if self.eof:
-            raise UnexpectedEOF(self._chars.pos)
-        if self.peek().type != type:
-            raise UnexpectedToken(self.peek(), self._chars.pos)
-        return self.next()
-
-    def expect_eof(self) -> None:
-        if not self.eof:
-            raise UnexpectedToken(self.peek(), self._chars.pos)
+        if self.has({type}):
+            return self.next()
+        raise UnexpectedToken({type}, self.peek(), self._chars.pos)
