@@ -2,70 +2,62 @@
     Parser for bnf grammar files.
     The grammar is:
         - grammar: rule { rule } ;
-        - rule: nonterm ":" productions ";" ;
-        - productions: production { "|" production } ;
-        - production: empty | symbol { symbol } ;
-        - symbol: nonterm | term ;
+        - rule: non-terminal ":" production { "|" production } ";" ;
+        - production: term { term } | "!" ;
+        - term: non-terminal | terminal ;
 """
-
-from def_parser.tokenizer import Tokenizer, TokenType, UnexpectedToken
+from def_parser.lexer import Lexer, TokenType, Token
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True, eq=True)
-class Symbol:
-    name: str
-    is_nonterm: bool
+class NonTerminal:
+    name: Token
+
+
+@dataclass(frozen=True, eq=True)
+class Terminal:
+    name: Token
 
 
 @dataclass(frozen=True, eq=True)
 class Rule:
-    nonterm: str
-    productions: list[list[Symbol]]
+    name: Token
+    production: list[Terminal | NonTerminal]
 
-    def __str__(self) -> str:
-        prods = " | ".join(" ".join(s.name for s in prod) for prod in self.productions)
-        return f"{self.nonterm}: {prods} ;"
 
-def _parse_production(tok: Tokenizer) -> list[Symbol]:
-    if tok.has({TokenType.Empty}):
-        tok.expect({TokenType.Empty})
+def _parse_term(lex: Lexer) -> Terminal | NonTerminal:
+    tok = lex.expect({TokenType.NON_TERMINAL, TokenType.TERMINAL})
+    if tok.type == TokenType.NON_TERMINAL:
+        return NonTerminal(tok)
+    return Terminal(tok)
+
+
+def _parse_production(lex: Lexer) -> list[Terminal | NonTerminal]:
+    if lex.has({TokenType.EMPTY}):
+        lex.expect({TokenType.EMPTY})
         return []
-    
-    symbols: list[Symbol] = []
-    while tok.has({TokenType.NonTerm, TokenType.Term}):
-        sym = tok.expect({TokenType.NonTerm, TokenType.Term})
-        symbols.append(Symbol(sym.value, sym.type == TokenType.NonTerm))
-    
-    if len(symbols) == 0:
-        peek = tok.peek()
-        assert peek is not None
-        raise UnexpectedToken({TokenType.Empty, TokenType.NonTerm, TokenType.Term}, peek)
-    
-    return symbols
-
-    
-def _parse_productions(tok: Tokenizer) -> list[list[Symbol]]:
-    prods = [_parse_production(tok)]
-    while tok.has({TokenType.Pipe}):
-        tok.expect({TokenType.Pipe})
-        prods.append(_parse_production(tok))
-    
-    return prods
+    terms: list[Terminal | NonTerminal] = [_parse_term(lex)]
+    while lex.has({TokenType.NON_TERMINAL, TokenType.TERMINAL}):
+        terms.append(_parse_term(lex))
+    return terms
 
 
-def _parse_rule(tok: Tokenizer) -> Rule:
-    nonterm = tok.expect({TokenType.NonTerm}).value
-    tok.expect({TokenType.Colon})
-    productions = _parse_productions(tok)
-    tok.expect({TokenType.Semicolon})
-    return Rule(nonterm, productions)
+def _parse_rule(lex: Lexer) -> list[Rule]:
+    name = lex.expect({TokenType.NON_TERMINAL})
+    lex.expect({TokenType.COLON})
+    productions: list[list[Terminal | NonTerminal]] = [_parse_production(lex)]
+    while lex.has({TokenType.PIPE}):
+        lex.expect({TokenType.PIPE})
+        productions.append(_parse_production(lex))
+    lex.expect({TokenType.SEMICOLON})
+    return [Rule(name, prod) for prod in productions]
 
 
-def parse(text: str) -> list[Rule]:
-    tok = Tokenizer(text)
-    rules: list[Rule] = [_parse_rule(tok)]
-    while tok.has({TokenType.NonTerm}):
-        rules.append(_parse_rule(tok))
-    tok.expect({TokenType.EOF})
+def parse(string: str) -> list[Rule]:
+    lex = Lexer(string)
+    rules: list[Rule] = _parse_rule(lex)
+    while lex.has({TokenType.NON_TERMINAL}):
+        rules.extend(_parse_rule(lex))
+    lex.expect({TokenType.EOF})
     return rules

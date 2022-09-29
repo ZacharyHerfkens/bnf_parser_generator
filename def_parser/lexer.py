@@ -155,7 +155,7 @@ class Lexer:
     def has(self, types: set[TokenType]) -> bool:
         return not self.eof and self.peek().type in types
 
-    def expect(self, type: TokenType) -> Token:
-        if self.has({type}):
+    def expect(self, types: set[TokenType]) -> Token:
+        if self.has(types):
             return self.next()
-        raise UnexpectedToken({type}, self.peek(), self._chars.pos)
+        raise UnexpectedToken(types, self.peek(), self._chars.pos)
