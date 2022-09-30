@@ -14,16 +14,28 @@ from dataclasses import dataclass
 class NonTerminal:
     name: Token
 
+    @property
+    def id(self) -> str:
+        return self.name.value
+
 
 @dataclass(frozen=True, eq=True)
 class Terminal:
     name: Token
+
+    @property
+    def id(self) -> str:
+        return self.name.value
 
 
 @dataclass(frozen=True, eq=True)
 class Rule:
     name: Token
     production: list[Terminal | NonTerminal]
+
+    @property
+    def id(self) -> str:
+        return self.name.value
 
 
 def _parse_term(lex: Lexer) -> Terminal | NonTerminal:
