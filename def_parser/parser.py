@@ -31,7 +31,7 @@ class Terminal:
 @dataclass(frozen=True, eq=True)
 class Rule:
     name: Token
-    production: list[Terminal | NonTerminal]
+    production: tuple[Terminal | NonTerminal, ...]
 
     @property
     def id(self) -> str:
@@ -63,7 +63,7 @@ def _parse_rule(lex: Lexer) -> list[Rule]:
         lex.expect({TokenType.PIPE})
         productions.append(_parse_production(lex))
     lex.expect({TokenType.SEMICOLON})
-    return [Rule(name, prod) for prod in productions]
+    return [Rule(name, tuple(prod)) for prod in productions]
 
 
 def parse(string: str) -> list[Rule]:

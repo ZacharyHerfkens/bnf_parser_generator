@@ -8,11 +8,11 @@ def test_parse() -> None:
     assert rules == [
         Rule(
             Token(TokenType.NON_TERMINAL, "S", 0, 1),
-            [Terminal(Token(TokenType.TERMINAL, "a", 3, 3))],
+            (Terminal(Token(TokenType.TERMINAL, "a", 3, 3)),),
         ),
         Rule(
             Token(TokenType.NON_TERMINAL, "S", 0, 1),
-            [NonTerminal(Token(TokenType.NON_TERMINAL, "B", 9, 1))],
+            (NonTerminal(Token(TokenType.NON_TERMINAL, "B", 9, 1)),),
         ),
     ]
 

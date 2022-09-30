@@ -113,7 +113,7 @@ class Analyzer:
                 self._predict[rule].update(self.follow(rule.id))
             self._predict[rule].update(self.first_of(rule.production))
 
-    def is_nullable(self, prod: list[Terminal | NonTerminal]) -> bool:
+    def is_nullable(self, prod: tuple[Terminal | NonTerminal]) -> bool:
         for symbol in prod:
             if isinstance(symbol, NonTerminal):
                 if not self.nullable(symbol.id):
@@ -122,7 +122,7 @@ class Analyzer:
                 return False
         return True
             
-    def first_of(self, prod: list[Terminal | NonTerminal]) -> set[str]:
+    def first_of(self, prod: tuple[Terminal | NonTerminal]) -> set[str]:
         first = set()
         for symbol in prod:
             if isinstance(symbol, Terminal):
@@ -130,7 +130,7 @@ class Analyzer:
                 break
             else:
                 first.update(self.first(symbol.id))
-                if not self.is_nullable([symbol]):
+                if not self.nullable(symbol.id):
                     break
         return first
     

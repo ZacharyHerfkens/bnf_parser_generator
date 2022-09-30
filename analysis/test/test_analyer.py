@@ -42,3 +42,4 @@ def test_predict_sets() -> None:
     analyzer = Analyzer(rules)
     assert analyzer.predict(rules[0]) == {"a"}
     assert analyzer.predict(rules[1]) == {"b", "c", "EOF"}
+    assert analyzer.predict(rules[5]) == {"EOF"}
