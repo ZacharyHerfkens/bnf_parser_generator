@@ -3,7 +3,7 @@ from def_parser.lexer import Token, TokenType, UnexpectedCharacter, UnexpectedTo
 import pytest
 
 def test_parse() -> None:
-    rules = parse("S: 'a' | 'b' ;")
+    rules = parse("S: 'a' | B ;")
     assert rules == [
         Rule(
             Token(TokenType.NON_TERMINAL, "S", 0, 1),
@@ -11,7 +11,7 @@ def test_parse() -> None:
         ),
         Rule(
             Token(TokenType.NON_TERMINAL, "S", 0, 1),
-            [Terminal(Token(TokenType.TERMINAL, "b", 9, 3))]
+            [NonTerminal(Token(TokenType.NON_TERMINAL, "B", 9, 1))]
         )
     ]
 
