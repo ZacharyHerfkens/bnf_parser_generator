@@ -43,3 +43,14 @@ def test_predict_sets() -> None:
     assert analyzer.predict(rules[0]) == {"a"}
     assert analyzer.predict(rules[1]) == {"b", "c", "EOF"}
     assert analyzer.predict(rules[5]) == {"EOF"}
+
+def test_predict_sets2() -> None:
+    rules = parse("S: A B C ; A: 'a' A | 'a' ; B: 'b' B | ! ; C: 'c' C | ! ;")
+    analyzer = Analyzer(rules)
+    assert analyzer.predict(rules[0]) == {"a"}
+    assert analyzer.predict(rules[1]) == {"a"}
+    assert analyzer.predict(rules[2]) == {"a"}
+    assert analyzer.predict(rules[3]) == {"b"}
+    assert analyzer.predict(rules[4]) == {"c", "EOF"}
+    assert analyzer.predict(rules[5]) == {"c"}
+    assert analyzer.predict(rules[6]) == {"EOF"}
