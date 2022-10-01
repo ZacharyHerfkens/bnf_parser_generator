@@ -146,7 +146,7 @@ class Analyzer:
     def predict(self, rule: Rule) -> set[str]:
         return self._predict[rule]
     
-    def productions(self, non_terminal: str) -> list[Rule]:
+    def rules(self, non_terminal: str) -> list[Rule]:
         return [rule for rule in self._rules if rule.id == non_terminal]
     
     @property
