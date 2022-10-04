@@ -111,9 +111,9 @@ class Analyzer:
 
     def _compute_predict(self) -> None:
         for rule in self._rules:
+            self._predict[rule] = self.first_of(rule.production)
             if self.is_nullable(rule.production):
                 self._predict[rule].update(self.follow(rule.id))
-            self._predict[rule].update(self.first_of(rule.production))
 
         for non_terminal in self.non_terminals:
             for rule in self.rules(non_terminal):
@@ -163,6 +163,9 @@ class Analyzer:
 
     def is_ambiguous(self) -> bool:
         return any(self._ambiguous.values())
+    
+    def ambiguous(self) -> dict[str, set[Rule]]:
+        return self._ambiguous
 
     @property
     def non_terminals(self) -> set[str]:

@@ -22,6 +22,12 @@ class ParseTree:
     children: list[Union[Token, "ParseTree"]]
 
 
+class AmbiguousGrammarError(Exception):
+    def __init__(self, rules: dict[str, set[Rule]]) -> None:
+        self._rules = rules
+        super().__init__(f"Ambiguous grammar: {rules}")
+
+
 class UnexpectedToken(Exception):
     """Exception raised when the parser encounters an unexpected token."""
 
@@ -54,7 +60,7 @@ class Parser:
         self._rules = rules
         self._analysis = Analyzer(rules)
         if self._analysis.is_ambiguous():
-            raise
+            raise AmbiguousGrammarError(self._analysis.ambiguous())
     
     def parse(self, lexer: Lexer) -> ParseTree:
         return self._parse(lexer, self._analysis.start)

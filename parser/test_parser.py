@@ -35,3 +35,29 @@ def test_parser() -> None:
             Token("b", "b", 1)
         ]
     )
+
+def test_parser2() -> None:
+    rules = parse("e: p et; et: '+' p et | !; p: '1';")
+    parser = Parser(rules)
+    lexer = TestLexer("1+1")
+    tree = parser.parse(lexer)
+    assert tree == ParseTree(
+        "e",
+        [
+            ParseTree(
+                "p",
+                [ Token("1", "1", 0) ]
+            ),
+            ParseTree(
+                "et",
+                [
+                    Token("+", "+", 1),
+                    ParseTree(
+                        "p",
+                        [ Token("1", "1", 2) ]
+                    ),
+                    ParseTree("et", [])
+                ]
+            )
+        ]
+    )
